@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Finder - Song Recognition</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #141a2e;
+      --card2: #1b2340;
+      --text: #e8ecf7;
+      --muted: #9aa7c7;
+      --accent: #6c8cff;
+      --accent2: #8b5cf6;
+      --danger: #ff6b6b;
+      --success: #35d07f;
+      --border: #273055;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1b2450 0%, transparent 60%),
+                  radial-gradient(900px 500px at 100% 0%, #2a1750 0%, transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+      letter-spacing: 0.2px;
+    }
+    .sub {
+      color: var(--muted);
+      margin: 0;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+    .drop {
+      border: 2px dashed #3a4978;
+      border-radius: 16px;
+      padding: 34px 20px;
+      text-align: center;
+      background: rgba(20, 26, 46, 0.7);
+      transition: 0.2s ease;
+      cursor: pointer;
+    }
+    .drop.dragover {
+      border-color: var(--accent);
+      background: rgba(108, 140, 255, 0.08);
+      transform: translateY(-1px);
+    }
+    .drop h2 { margin: 0 0 8px; font-size: 1.2rem; }
+    .drop p { margin: 0; color: var(--muted); }
+    .actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button, .btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .hint { color: var(--muted); font-size: 0.9rem; margin-top: 10px; text-align: center; }
+    .status {
+      margin-top: 16px;
+      min-height: 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--success); }
+    .result {
+      margin-top: 22px;
+      display: none;
+      grid-template-columns: 260px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .result.show { display: grid; }
+    @media (max-width: 720px) {
+      .result { grid-template-columns: 1fr; }
+    }
+    .cover {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #0f1530;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .cover .placeholder { color: var(--muted); padding: 20px; text-align: center; }
+    .meta {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .song-title { font-size: 1.6rem; margin: 0 0 4px; }
+    .artist { font-size: 1.1rem; color: #c9d4f5; margin: 0 0 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px 14px;
+      margin-top: 8px;
+    }
+    .item { background: var(--card2); border: 1px solid #2a355f; border-radius: 10px; padding: 10px 12px; }
+    .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+    .value { font-size: 0.98rem; word-break: break-word; }
+    .links { margin-top: 14px; }
+    .links a { color: #a9c1ff; text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+    .file-name { margin-top: 10px; color: var(--muted); font-size: 0.92rem; text-align:center; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🎵 Music Finder</h1>
+      <p class="sub">Upload a music/audio file to identify the song, artist, thumbnail, and details.</p>
+    </header>
+
+    <div class="panel">
+      <div id="drop" class="drop">
+        <h2>Drop your audio file here</h2>
+        <p>or click to choose a file</p>
+        <div class="actions">
+          <button id="pickBtn" type="button">Choose File</button>
+        </div>
+        <div class="hint">Supported: MP3, WAV, M4A, OGG, FLAC, AAC, WEBM, MP4 (audio), OPUS — up to 30MB</div>
+        <input id="fileInput" type="file" accept="audio/*,video/mp4,video/webm,.mp3,.wav,.m4a,.ogg,.flac,.aac,.opus" hidden />
+      </div>
+      <div id="fileName" class="file-name"></div>
+      <div id="status" class="status"></div>
+
+      <div id="result" class="result">
+        <div class="cover" id="coverBox">
+          <div class="placeholder">No thumbnail</div>
+        </div>
+        <div class="meta">
+          <h2 id="title" class="song-title">-</h2>
+          <p id="artist" class="artist">-</p>
+          <div class="grid">
+            <div class="item"><div class="label">Album</div><div id="album" class="value">-</div></div>
+            <div class="item"><div class="label">Genre</div><div id="genre" class="value">-</div></div>
+            <div class="item"><div class="label">Release Date</div><div id="release" class="value">-</div></div>
+            <div class="item"><div class="label">Label</div><div id="label" class="value">-</div></div>
+          </div>
+          <div class="links" id="links"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('fileInput');
+    const pickBtn = document.getElementById('pickBtn');
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+    const fileNameEl = document.getElementById('fileName');
+
+    function setStatus(msg, type='') {
+      statusEl.className = 'status ' + type;
+      statusEl.innerHTML = msg || '';
+    }
+
+    function showResult(data) {
+      document.getElementById('title').textContent = data.title || 'Unknown title';
+      document.getElementById('artist').textContent = data.artist || 'Unknown artist';
+      document.getElementById('album').textContent = data.album || '-';
+      document.getElementById('genre').textContent = data.genre || '-';
+      document.getElementById('release').textContent = data.release_date || '-';
+      document.getElementById('label').textContent = data.label || '-';
+
+      const coverBox = document.getElementById('coverBox');
+      coverBox.innerHTML = '';
+      if (data.coverart) {
+        const img = document.createElement('img');
+        img.src = data.coverart;
+        img.alt = 'Cover art';
+        img.referrerPolicy = 'no-referrer';
+        coverBox.appendChild(img);
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'placeholder';
+        ph.textContent = 'No thumbnail available';
+        coverBox.appendChild(ph);
+      }
+
+      const links = document.getElementById('links');
+      links.innerHTML = '';
+      const url = data.share_url || data.shazam_url;
+      if (url) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'Open song page';
+        links.appendChild(a);
+      }
+
+      resultEl.classList.add('show');
+    }
+
+    async function recognize(file) {
+      if (!file) return;
+      fileNameEl.textContent = 'Selected: ' + file.name;
+      resultEl.classList.remove('show');
+      setStatus('<span class="spinner"></span>Identifying song, please wait...', '');
+      pickBtn.disabled = true;
+
+      const form = new FormData();
+      form.append('file', file);
+
+      try {
+        const res = await fetch('/api/recognize', { method: 'POST', body: form });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Request failed');
+        }
+        if (data.found) {
+          setStatus('Song identified successfully.', 'success');
+          showResult(data);
+        } else {
+          setStatus(data.error ? ('Error: ' + data.error) : 'Song not found. Try a clearer/longer audio clip.', 'error');
+        }
+      } catch (err) {
+        setStatus('Error: ' + (err.message || err), 'error');
+      } finally {
+        pickBtn.disabled = false;
+      }
+    }
+
+    pickBtn.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('click', (e) => { if (e.target !== pickBtn) fileInput.click(); });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) recognize(fileInput.files[0]); });
+
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover');
+    }));
+    drop.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) recognize(file);
+    });
+  </script>
+</body>
+</html>
