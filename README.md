@@ -14,32 +14,22 @@ Web app + API to upload an audio/music file, identify the song, and show details
 - `static/` – static assets (if needed)
 - `uploads/` – temporary upload folder (processed files are deleted after recognition)
 - `API.md` – API documentation
+- `requirements.txt` – Python dependencies
 
-## Requirements
-- Python 3.10+
-- Internet access (for Shazam recognition)
-
-## Setup
+## Local setup
 
 ```bash
-pip install flask shazamio
-```
-
-If your environment is externally managed (PEP 668), you may need:
-
-```bash
-pip3 install --break-system-packages flask shazamio
-```
-
-## Run
-
-```bash
+pip install -r requirements.txt
 python3 app.py
 ```
 
 Open: [http://localhost:5000](http://localhost:5000)
 
-By default the app listens on `0.0.0.0:5000`.
+## Deploy (Render)
+- **Build command:** `pip install -r requirements.txt`
+- **Start command:** `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120`
+
+> Recognition needs outbound internet access from the server.
 
 ## API
 See [API.md](API.md) for request/response details and examples.

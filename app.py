@@ -9,6 +9,8 @@ app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024  # 30MB
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+ALLOWED_EXT = {'.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.webm', '.mp4', '.opus'}
+
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -20,8 +22,6 @@ def add_cors_headers(response):
 def api_recognize_options():
     return ('', 204)
 
-ALLOWED_EXT = {'.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.webm', '.mp4', '.opus'}
-
 def extract_info(data: dict) -> dict:
     track = data.get('track') or {}
     if not track:
@@ -31,7 +31,6 @@ def extract_info(data: dict) -> dict:
     share = track.get('share') or {}
     sections = track.get('sections') or []
 
-    # try to find lyrics/metadata section if any
     album = None
     release_date = None
     label = None
@@ -48,8 +47,6 @@ def extract_info(data: dict) -> dict:
                     release_date = text
                 elif title == 'label':
                     label = text
-        elif sec.get('type') == 'VIDEO':
-            pass
     genres = (track.get('genres') or {}).get('primary')
 
     return {
@@ -113,4 +110,5 @@ def api_recognize():
             pass
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
